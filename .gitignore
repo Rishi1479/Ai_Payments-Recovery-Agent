@@ -1,0 +1,113 @@
+# ─── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+MANIFEST
+
+# Testing
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+*.test.db
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# ─── Environment & Secrets ─────────────────────────────────────────────────────
+backend/.env
+.env
+.env.local
+.env.*.local
+!backend/.env.example   # keep the example file committed
+
+# ─── Database Files ────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Vite cache
+.vite/
+
+# npm / yarn / pnpm lockfiles (keep package-lock.json or yarn.lock — pick one)
+# Uncomment the one you DON'T use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ─── Build Artifacts ───────────────────────────────────────────────────────────
+*.min.js
+*.min.css
+*.map
+
+# ─── Docker ────────────────────────────────────────────────────────────────────
+# (Dockerfiles are committed; ignore generated volumes/data)
+docker-data/
+postgres-data/
+redis-data/
+
+# ─── OS & Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains / PyCharm
+.idea/
+*.iml
+
+# ─── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pip-log.txt
+
+# ─── Alembic ───────────────────────────────────────────────────────────────────
+# Keep migrations committed — they are source code
+# Only ignore auto-generated temp files
+alembic/versions/__pycache__/
+
+# ─── LangChain / LangSmith ─────────────────────────────────────────────────────
+.langchain/
+langsmith_cache/
+
+# ─── Misc ──────────────────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.swp
+*.swo
