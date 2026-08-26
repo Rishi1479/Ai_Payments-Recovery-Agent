@@ -6,6 +6,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import StaticPool
+import app.database
 
 
 @pytest.fixture(scope="session")
@@ -16,7 +17,7 @@ def event_loop():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def db_session():
+async def db_session(monkeypatch):
     """In-memory SQLite session for fast tests."""
     # Import models to ensure all tables are registered on Base
     import app.models.db_models  # noqa
@@ -32,6 +33,11 @@ async def db_session():
         await conn.run_sync(Base.metadata.create_all)
 
     Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    
+    # Patch AsyncSessionLocal and engine in app.database so graph nodes and dependencies use test db
+    monkeypatch.setattr(app.database, "AsyncSessionLocal", Session)
+    monkeypatch.setattr(app.database, "engine", engine)
+
     async with Session() as session:
         yield session
 

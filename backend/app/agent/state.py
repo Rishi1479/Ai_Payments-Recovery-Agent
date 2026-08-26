@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.db_models import (
     FailureCode, FailureCategory, PaymentStatus,
@@ -19,6 +19,8 @@ from app.models.db_models import (
 
 class AuditEventEntry(BaseModel):
     """In-memory audit event (written to DB at the end of each node)."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     event_type: EventType
     node: str
     reason: str = ""
@@ -32,10 +34,11 @@ class GraphState(BaseModel):
     Complete state object passed through all LangGraph nodes.
     Immutable between nodes — each node returns a partial update dict.
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # ── Payment identity ────────────────────────────────────────────────────
     payment_id: str
-    customer_id: str
+    customer_id: str = ""
     amount: Decimal = Decimal("0")
     currency: str = "INR"
 
@@ -88,6 +91,3 @@ class GraphState(BaseModel):
 
     # ── Node timing ─────────────────────────────────────────────────────────
     timestamps: Dict[str, datetime] = Field(default_factory=dict)
-
-    class Config:
-        arbitrary_types_allowed = True

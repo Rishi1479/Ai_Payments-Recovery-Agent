@@ -160,6 +160,7 @@ export const SimulatorModal: React.FC<SimulatorModalProps> = ({
               <option value="EXPIRED_CARD">EXPIRED_CARD (Payment link update required ~50%)</option>
               <option value="CARD_DECLINED">CARD_DECLINED (Issuer decline ~40%)</option>
               <option value="FRAUD_RISK">FRAUD_RISK (POLICY ENGINE HARD BLOCK: 0% retry)</option>
+              <option value="UNKNOWN">UNKNOWN (Triggers Google Gemini 2.0 Flash classification)</option>
             </select>
           </div>
 

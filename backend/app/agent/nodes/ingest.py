@@ -50,6 +50,7 @@ async def ingest_payment_node(state: GraphState, db: AsyncSession) -> dict:
     )
 
     return {
+        "customer_id": str(customer.id),
         "amount": txn.amount,
         "currency": txn.currency,
         "failure_code": txn.failure_code,

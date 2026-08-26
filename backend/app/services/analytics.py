@@ -46,7 +46,7 @@ async def get_summary(db: AsyncSession) -> AnalyticsSummary:
     pending = row.pending or 0
     human_review = row.human_review or 0
 
-    recovery_rate = float(revenue_recovered / revenue_at_risk * 100) if revenue_at_risk > 0 else 0.0
+    recovery_rate = min(float(revenue_recovered / revenue_at_risk * 100), 100.0) if revenue_at_risk > 0 else 0.0
 
     # Retry success rate
     retry_result = await db.execute(
@@ -94,7 +94,7 @@ async def get_failure_type_breakdown(db: AsyncSession) -> List[FailureTypeBreakd
     for row in rows:
         at_risk = Decimal(str(row.revenue_at_risk or 0))
         recovered_amt = Decimal(str(row.revenue_recovered or 0))
-        rate = float(recovered_amt / at_risk * 100) if at_risk > 0 else 0.0
+        rate = min(float(recovered_amt / at_risk * 100), 100.0) if at_risk > 0 else 0.0
         breakdown.append(FailureTypeBreakdown(
             failure_code=row.failure_code.value,
             total=row.total,

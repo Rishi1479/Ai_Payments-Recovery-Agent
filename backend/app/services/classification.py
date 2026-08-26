@@ -5,6 +5,7 @@ The LLM is ONLY invoked when failure_code is UNKNOWN and a description is presen
 from __future__ import annotations
 
 import json
+from langsmith import traceable
 from app.models.db_models import FailureCode, FailureCategory, ClassificationMethod
 from app.models.schemas import ClassificationOutput
 from app.config import get_settings
@@ -62,6 +63,24 @@ def classify_deterministic(failure_code: FailureCode) -> ClassificationOutput | 
     return None
 
 
+@traceable(name="gemini_root_cause_classification", run_type="llm")
+def _call_gemini_classify(api_key: str, model: str, system_prompt: str, user_msg: str, temperature: float) -> str:
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=model,
+        contents=user_msg,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=temperature,
+            response_mime_type="application/json",
+        ),
+    )
+    return response.text
+
+
 async def classify_with_llm(
     payment_id: str,
     failure_code: FailureCode,
@@ -71,18 +90,11 @@ async def classify_with_llm(
     """
     LLM-based classification for ambiguous/UNKNOWN cases.
     Returns structured output. Never invents financial values.
+    Uses Google GenAI SDK and is fully traced in LangSmith.
     """
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain_core.messages import HumanMessage, SystemMessage
-    from pydantic import ValidationError
+    import asyncio
 
-    llm = ChatGoogleGenerativeAI(
-        model=settings.llm_model,
-        temperature=settings.llm_temperature,
-        google_api_key=settings.gemini_api_key,
-    )
-
-    system_prompt = """You are a payment failure classifier for a financial system.
+    system_prompt = """You are a payment failure classifier for a financial revenue recovery system.
 Your ONLY job is to classify why a payment failed and return structured JSON.
 
 You MUST return exactly this JSON structure:
@@ -113,23 +125,40 @@ Additional context: {description or 'None'}
 Classify this payment failure."""
 
     try:
-        response = await llm.ainvoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_msg),
-        ])
-        raw = response.content.strip()
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        data = json.loads(raw.strip())
+        raw = await asyncio.to_thread(
+            _call_gemini_classify,
+            settings.gemini_api_key,
+            settings.llm_model,
+            system_prompt,
+            user_msg,
+            settings.llm_temperature,
+        )
+        
+        # Clean response if markdown fences exist
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("```")[1]
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:]
+        data = json.loads(cleaned.strip())
+        
+        category_str = data.get("category", "UNKNOWN").upper()
+        # Fallback category if LLM returned unrecognized string
+        try:
+            category = FailureCategory(category_str)
+        except ValueError:
+            category = FailureCategory.UNKNOWN
+
+        confidence = float(data.get("confidence", 0.5))
+        reason = data.get("reason", "Classified via Gemini model.")
+
         result = ClassificationOutput(
-            category=FailureCategory(data["category"]),
-            confidence=float(data["confidence"]),
-            reason=data["reason"],
+            category=category,
+            confidence=confidence,
+            reason=reason,
             method=ClassificationMethod.LLM,
         )
+
         # If LLM is uncertain, force UNKNOWN
         if result.confidence < settings.min_confidence_threshold:
             result = ClassificationOutput(

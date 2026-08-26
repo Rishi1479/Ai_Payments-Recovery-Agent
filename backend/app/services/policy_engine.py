@@ -98,8 +98,9 @@ class PolicyEngine:
 
         # ── STOP 6: Recovery window expired ─────────────────────────────────
         if failed_at is not None:
+            now_dt = datetime.now(timezone.utc) if failed_at.tzinfo else datetime.utcnow()
             window_limit = failed_at + timedelta(days=recovery_window_days)
-            if datetime.utcnow() > window_limit:
+            if now_dt > window_limit:
                 return PolicyCheckOutput(
                     result=PolicyResult.BLOCKED,
                     reason=f"BLOCKED: Recovery window of {recovery_window_days} days expired.",

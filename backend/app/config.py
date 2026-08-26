@@ -1,14 +1,23 @@
-"""
-Central configuration management.
-All runtime settings are loaded from environment variables.
-"""
+import os
 from functools import lru_cache
+from pathlib import Path
+from dotenv import find_dotenv, load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Automatically locate and load .env if present
+_env_path = find_dotenv(usecwd=True)
+if _env_path:
+    load_dotenv(_env_path, override=False)
+else:
+    # Check backend/.env
+    _backend_env = Path(__file__).resolve().parent.parent / ".env"
+    if _backend_env.exists():
+        load_dotenv(_backend_env, override=False)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -31,12 +40,12 @@ class Settings(BaseSettings):
 
     # LLM (Gemini)
     gemini_api_key: str = ""
-    llm_model: str = "gemini-2.0-flash"
+    llm_model: str = "gemini-3.6-flash"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 1024
 
     # LangSmith
-    langchain_tracing_v2: bool = False
+    langchain_tracing_v2: bool = True
     langchain_api_key: str = ""
     langchain_project: str = "ai-revenue-recovery-agent"
 
@@ -60,4 +69,12 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    # Propagate LangSmith & Gemini config to os.environ for LangGraph and LangChain auto-tracing
+    if s.langchain_api_key:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true" if s.langchain_tracing_v2 else "false"
+        os.environ["LANGCHAIN_API_KEY"] = s.langchain_api_key
+        os.environ["LANGCHAIN_PROJECT"] = s.langchain_project
+    if s.gemini_api_key:
+        os.environ["GEMINI_API_KEY"] = s.gemini_api_key
+    return s
